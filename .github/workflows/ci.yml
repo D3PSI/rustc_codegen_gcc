@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04 # Switch back to ubuntu-latest when it is 22.04
 
     strategy:
       fail-fast: false
@@ -22,9 +22,16 @@ jobs:
         path: llvm
 
     - name: Install packages
-      run: sudo apt-get install ninja-build ripgrep
+      run: |
+        sudo apt-get update
+        sudo apt-get install ninja-build ripgrep
+
+    - name: Install libgccjit12
+      if: matrix.libgccjit_version == 'libgccjit12.so'
+      run: sudo apt-get install libgccjit-12-dev
 
     - name: Download artifact
+      if: matrix.libgccjit_version != 'libgccjit12.so'
       uses: dawidd6/action-download-artifact@v2
       with:
           workflow: main.yml
@@ -34,6 +41,12 @@ jobs:
           search_artifacts: true # Because, instead, the action only check the last job ran and that won't work since we want multiple artifacts.
 
     - name: Setup path to libgccjit
+      if: matrix.libgccjit_version == 'libgccjit12.so'
+      run: |
+        echo /usr/lib/gcc/x86_64-linux-gnu/12 > gcc_path
+
+    - name: Setup path to libgccjit
+      if: matrix.libgccjit_version != 'libgccjit12.so'
       run: |
           echo $(readlink -f gcc-build) > gcc_path
           # NOTE: the filename is still libgccjit.so even when the artifact name is different.
